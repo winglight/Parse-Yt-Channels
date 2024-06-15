@@ -5,6 +5,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 import chromadb
 from astrapy import DataAPIClient
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_core.embeddings import Embeddings
 
 # 从环境变量中获取配置
 PROXY_SERVER = os.getenv('PROXY_SERVER', 'http://127.0.0.1:1087')
@@ -16,6 +18,8 @@ CHROMA_COLLECTION_NAME = os.getenv('CHROMA_COLLECTION_NAME', 'youtube_scripts')
 ASTRA_TOKEN = os.getenv('ASTRA_TOKEN', '')
 ASTRA_DB_ENDPOINT = os.getenv('ASTRA_DB_ENDPOINT', '')
 SAVE_DIRECTORY = os.getenv('SAVE_DIRECTORY', './data')
+
+ollama_embedding = OllamaEmbeddings(model=model, base_url=base_url, temperature=temperature)
 
 # Initialize the client
 client = DataAPIClient("YOUR_TOKEN")
@@ -90,6 +94,9 @@ def save_to_chroma(split_texts, video_info):
         )
     print(f"Split script parts saved to Chroma for video: {video_info['title']}")
 
+def save_to_astradb(split_texts, video_info):
+
+
 def main(channel_name):
     urls_filename = os.path.join(SAVE_DIRECTORY, f"{channel_name}_urls.txt")
     
@@ -136,7 +143,8 @@ def main(channel_name):
             "url": video['url'],
             "channel_name": channel_name
         }
-        save_to_chroma(split_texts, video_info)
+        # save_to_chroma(split_texts, video_info)
+        save_to_astradb(split_texts, video_info)
 
 if __name__ == '__main__':
     main(CHANNEL_NAME)
