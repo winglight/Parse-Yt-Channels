@@ -4,6 +4,7 @@ from langchain_community.document_loaders import YoutubeLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 import chromadb
+from astrapy import DataAPIClient
 
 # 从环境变量中获取配置
 PROXY_SERVER = os.getenv('PROXY_SERVER', 'http://127.0.0.1:1087')
@@ -12,7 +13,17 @@ CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', 200))
 CHANNEL_NAME = os.getenv('CHANNEL_NAME', 'Tankman2020')
 YOUTUBE_LANG = os.getenv('YOUTUBE_LANG', 'zh-CN')
 CHROMA_COLLECTION_NAME = os.getenv('CHROMA_COLLECTION_NAME', 'youtube_scripts')
-SAVE_DIRECTORY = os.getenv('SAVE_DIRECTORY', '.')
+ASTRA_TOKEN = os.getenv('ASTRA_TOKEN', '')
+ASTRA_DB_ENDPOINT = os.getenv('ASTRA_DB_ENDPOINT', '')
+SAVE_DIRECTORY = os.getenv('SAVE_DIRECTORY', './data')
+
+# Initialize the client
+client = DataAPIClient("YOUR_TOKEN")
+db = client.get_database_by_api_endpoint(
+  "https://19fe29fc-17e3-4bcf-8f63-341e92b625c4-us-east1.apps.astra.datastax.com"
+)
+
+print(f"Connected to Astra DB: {db.list_collection_names()}")
 
 # 初始化 Chroma 客户端和集合
 chroma_client = chromadb.Client()
