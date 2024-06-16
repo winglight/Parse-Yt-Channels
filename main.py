@@ -4,9 +4,24 @@ from langchain_community.document_loaders import YoutubeLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 import chromadb
-from astrapy import DataAPIClient
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_core.embeddings import Embeddings
+
+from langchain_astradb import AstraDBVectorStore
+from astrapy.info import CollectionVectorServiceOptions
+from datasets import load_dataset
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from dotenv import load_dotenv
+
+# 加载 .env 文件中的环境变量
+load_dotenv()
 
 # 从环境变量中获取配置
 PROXY_SERVER = os.getenv('PROXY_SERVER', 'http://127.0.0.1:1087')
@@ -17,17 +32,20 @@ YOUTUBE_LANG = os.getenv('YOUTUBE_LANG', 'zh-CN')
 CHROMA_COLLECTION_NAME = os.getenv('CHROMA_COLLECTION_NAME', 'youtube_scripts')
 ASTRA_TOKEN = os.getenv('ASTRA_TOKEN', '')
 ASTRA_DB_ENDPOINT = os.getenv('ASTRA_DB_ENDPOINT', '')
+ASTRA_COLLECTION = os.getenv('ASTRA_COLLECTION', '')
 SAVE_DIRECTORY = os.getenv('SAVE_DIRECTORY', './data')
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', '')
+OLLAMA_URL = os.getenv('OLLAMA_URL', '')
 
-ollama_embedding = OllamaEmbeddings(model=model, base_url=base_url, temperature=temperature)
+ollama_embedding = OllamaEmbeddings(model=OLLAMA_MODEL, base_url=OLLAMA_URL, temperature=0.1)
 
-# Initialize the client
-client = DataAPIClient("YOUR_TOKEN")
-db = client.get_database_by_api_endpoint(
-  "https://19fe29fc-17e3-4bcf-8f63-341e92b625c4-us-east1.apps.astra.datastax.com"
+# Initialize AstraDB
+vstore = AstraDBVectorStore(
+    embedding=ollama_embedding,
+    collection_name=ASTRA_COLLECTION,
+    api_endpoint=ASTRA_DB_ENDPOINT,
+    token=ASTRA_TOKEN,
 )
-
-print(f"Connected to Astra DB: {db.list_collection_names()}")
 
 # 初始化 Chroma 客户端和集合
 chroma_client = chromadb.Client()
@@ -95,7 +113,8 @@ def save_to_chroma(split_texts, video_info):
     print(f"Split script parts saved to Chroma for video: {video_info['title']}")
 
 def save_to_astradb(split_texts, video_info):
-
+    inserted_ids_from_pdf = vstore.add_documents(split_texts, video_info=video_info)
+    print(f"Inserted {len(inserted_ids_from_pdf)} documents.")
 
 def main(channel_name):
     urls_filename = os.path.join(SAVE_DIRECTORY, f"{channel_name}_urls.txt")
@@ -115,6 +134,7 @@ def main(channel_name):
     # 解析视频脚本并保存
     for video in videos:
         script_filename = os.path.join(SAVE_DIRECTORY, f"{video['title']}.txt")
+        script = ""
         
         if os.path.exists(script_filename):
             print(f"{script_filename} already exists. Skipping script retrieval.")
@@ -123,7 +143,7 @@ def main(channel_name):
         else:
             loader = YoutubeLoader.from_youtube_url(video['url'], language=YOUTUBE_LANG, add_video_info=True)
             result = loader.load()
-            script = ""
+            
             if len(result) > 0:
                 script = result[0]  # Assuming `result` contains the script in 'text' key
             else:
