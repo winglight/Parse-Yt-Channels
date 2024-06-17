@@ -28,7 +28,7 @@ PROXY_SERVER = os.getenv('PROXY_SERVER', 'http://127.0.0.1:1087')
 CHUNK_SIZE = int(os.getenv('CHUNK_SIZE', 1000))
 CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', 200))
 CHANNEL_NAME = os.getenv('CHANNEL_NAME', 'Tankman2020')
-YOUTUBE_LANG = os.getenv('YOUTUBE_LANG', 'zh-CN')
+YOUTUBE_LANG = str(os.getenv('YOUTUBE_LANG', 'zh-CN')).split(",")
 CHROMA_COLLECTION_NAME = os.getenv('CHROMA_COLLECTION_NAME', 'youtube_scripts')
 ASTRA_TOKEN = os.getenv('ASTRA_TOKEN', '')
 ASTRA_DB_ENDPOINT = os.getenv('ASTRA_DB_ENDPOINT', '')
@@ -112,9 +112,16 @@ def save_to_chroma(split_texts, video_info):
         )
     print(f"Split script parts saved to Chroma for video: {video_info['title']}")
 
-def save_to_astradb(split_texts, video_info):
-    inserted_ids_from_pdf = vstore.add_documents(split_texts, video_info=video_info)
-    print(f"Inserted {len(inserted_ids_from_pdf)} documents.")
+def save_to_astradb(split_texts):
+    if len(split_texts) > 0:
+        # if exists the same source
+        source = split_texts[0].metadata.get('source')
+        results = vstore.similarity_search(query=None, k=1, filter=dict(source=source))
+        if len(results) > 0:
+            print("documents already exist.")
+            return
+        inserted_ids_from_pdf = vstore.add_documents(split_texts)
+        print(f"Inserted {len(inserted_ids_from_pdf)} documents.")
 
 def main(channel_name):
     urls_filename = os.path.join(SAVE_DIRECTORY, f"{channel_name}_urls.txt")
@@ -133,38 +140,39 @@ def main(channel_name):
 
     # 解析视频脚本并保存
     for video in videos:
-        script_filename = os.path.join(SAVE_DIRECTORY, f"{video['title']}.txt")
-        script = ""
+        # script_filename = os.path.join(SAVE_DIRECTORY, f"{video['title']}.txt")
+        # script = ""
         
-        if os.path.exists(script_filename):
-            print(f"{script_filename} already exists. Skipping script retrieval.")
-            with open(script_filename, 'r', encoding='utf-8') as file:
-                script = file.read()
-        else:
-            loader = YoutubeLoader.from_youtube_url(video['url'], language=YOUTUBE_LANG, add_video_info=True)
-            result = loader.load()
-            
-            if len(result) > 0:
-                script = result[0]  # Assuming `result` contains the script in 'text' key
-            else:
-                print(f"无法解析视频: {video['title']}")
-                continue
-            save_script_to_file(script, video['title'])
+        # if os.path.exists(script_filename):
+        #     print(f"{script_filename} already exists. Skipping script retrieval.")
+        #     with open(script_filename, 'r', encoding='utf-8') as file:
+        #         script = file.read()
+        # else:
+        loader = YoutubeLoader.from_youtube_url(video['url'], language=YOUTUBE_LANG, add_video_info=True)
+        result = loader.load()
+        
+        if len(result) > 0:
+            script = result[0]  # Assuming `result` contains the script in 'text' key
+            print(script.metadata, "exctracted")
+        # else:
+        #     print(f"无法解析视频: {video['title']}")
+        #     continue
+        # save_script_to_file(script, video['title'])
         
         # 使用RecursiveCharacterTextSplitter分割脚本
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP, add_start_index=True
         )
-        split_texts = text_splitter.split_documents(script)
+        split_texts = text_splitter.split_documents(result)
 
         # Save split texts to Chroma
-        video_info = {
-            "title": video['title'],
-            "url": video['url'],
-            "channel_name": channel_name
-        }
+        # video_info = {
+        #     "title": video['title'],
+        #     "url": video['url'],
+        #     "channel_name": channel_name
+        # }
         # save_to_chroma(split_texts, video_info)
-        save_to_astradb(split_texts, video_info)
+        save_to_astradb(split_texts)
 
 if __name__ == '__main__':
     main(CHANNEL_NAME)
