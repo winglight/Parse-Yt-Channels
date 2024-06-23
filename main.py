@@ -34,10 +34,11 @@ ASTRA_TOKEN = os.getenv('ASTRA_TOKEN', '')
 ASTRA_DB_ENDPOINT = os.getenv('ASTRA_DB_ENDPOINT', '')
 ASTRA_COLLECTION = os.getenv('ASTRA_COLLECTION', '')
 SAVE_DIRECTORY = os.getenv('SAVE_DIRECTORY', './data')
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', '')
+OLLAMA_EMBEDDIG_MODEL = os.getenv('OLLAMA_EMBEDDIG_MODEL', '')
+OLLAMA_LLM_MODEL = os.getenv('OLLAMA_LLM_MODEL', '')
 OLLAMA_URL = os.getenv('OLLAMA_URL', '')
 
-ollama_embedding = OllamaEmbeddings(model=OLLAMA_MODEL, base_url=OLLAMA_URL, temperature=0.1)
+ollama_embedding = OllamaEmbeddings(model=OLLAMA_EMBEDDIG_MODEL, base_url=OLLAMA_URL, temperature=0.1)
 
 # Initialize AstraDB
 vstore = AstraDBVectorStore(
