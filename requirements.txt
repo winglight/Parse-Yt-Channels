@@ -1,0 +1,9 @@
+pyppeteer
+langchain_community
+langchain_text_splitters
+langchain_core
+langchain_astradb
+chromadb
+astrapy
+datasets
+python-dotenv
