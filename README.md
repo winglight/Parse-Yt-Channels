@@ -3,6 +3,10 @@
 
 Parse-Yt-Channels 是一个用于解析 YouTube 频道信息的开源工具。它可以帮助开发者从 YouTube 频道中提取和整理信息，便于进一步的数据分析或应用集成。
 
+## 特别说明
+
+本代码80%来自AI（Claude3.5）的协助生成，另有文档说明整个过程：[AI助我写代码（3）：解析YouTube频道内容风格](https://www.broyustudio.com/2024/08/30/AI-Help-Parse-YouTube-Video.html)
+
 ## 功能简介
 
 - **解析频道信息**：自动提取 YouTube 频道的基本信息，包括频道名称、描述、订阅者数量、视频总数等。
